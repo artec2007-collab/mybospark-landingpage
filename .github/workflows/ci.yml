@@ -1,0 +1,44 @@
+name: Landing Page Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  html-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Basic HTML sanity check (informational)
+        run: |
+          set +e
+          FAIL=0
+          if [ ! -s index.html ]; then
+            echo "index.html is empty or missing"
+            FAIL=1
+          fi
+          if ! grep -qi '<!doctype html>' index.html; then
+            echo "missing <!DOCTYPE html>"
+            FAIL=1
+          fi
+          for tag in html head body; do
+            OPEN=$(grep -oi "<$tag" index.html | wc -l)
+            CLOSE=$(grep -oi "</$tag>" index.html | wc -l)
+            if [ "$OPEN" -eq 0 ]; then
+              echo "missing <$tag> tag"
+              FAIL=1
+            fi
+            if [ "$OPEN" -ne "$CLOSE" ]; then
+              echo "$tag open/close tag count mismatch: $OPEN vs $CLOSE"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 0 ]; then
+            echo "No obvious HTML structure problems found."
+          fi
+        continue-on-error: true
